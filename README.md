@@ -3,9 +3,9 @@
 # Things to do
 
 - [ ] serverless function on google cloud
-- [ ] scrape website
-- [ ] upload all images to shopify
+- [X] scrape website
+- [X] upload all images to shopify
 - [ ] resize images maybe...
-- [ ] write to csv i think
-- [ ] import as products 
+- [X] import as products 
+- [ ] variants and prices
 - [ ] grab reviews too 

@@ -1,13 +1,16 @@
 const puppeteer = require("puppeteer");
 const fs = require("fs");
+const Shopify = require('shopify-api-node');
+const image2base64 = require("image-to-base64");
 require('dotenv').config();
+const shopify = new Shopify({
+  shopName: process.env.SHOP_NAME,
+  apiKey: process.env.APIKEY,
+  password: process.env.PASSWORD,
+})
 
 // Opens browser do scraping
 async function initBrowser() {
-
-  fs.writeFile('output.csv', 'URL, Title, H2\r\n', 'utf8', function (err) {
-    console.log(`Header written`)
-  })
 
   this.browser = await puppeteer.launch({
     headless: false,
@@ -38,6 +41,8 @@ async function initBrowser() {
       return links;
     });
 
+    const newImages = await getImages(images);
+
     const price = await page
       .evaluate(() => document.querySelector("p.wt-text-title-03.wt-mr-xs-2").textContent)
       .catch(err => console.log(err));
@@ -46,13 +51,36 @@ async function initBrowser() {
       .evaluate(() => document.querySelector("p.wt-text-body-01.wt-break-word").textContent.trim())
       .catch(err => console.log(err));
 
-    fs.appendFile('output.csv', `${urls[i]}, ${title}, ${price}\r\n`, 'utf8', function (err) {
-      console.log(
-        `url: ${urls[i]}, title: ${title}, h2: ${price}`)
-    })
+    uploadToShopify(newImages, title, price, description)
 
     await page.goBack();
   }
+}
+
+async function getImages(images) {
+  const waitResolve = [];
+  for (let x = 0; x < images.length; x++) {
+    const base64 = await image2base64(images[x]);
+    waitResolve.push({
+      "attachment": base64,
+    })
+  }
+  return Promise.all(waitResolve);
+}
+
+async function uploadToShopify(images, title, price, description) {
+  await shopify.product.create({
+    "title": title,
+    "body_html": description,
+    "images": images,
+    "variants": [
+      {
+        "option1": "First",
+        "price": "10.00",
+        "sku": 123
+      },
+    ]
+  })
 }
 
 async function runAllTheThings() {
